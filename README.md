@@ -3,8 +3,8 @@ api for making trusted timestamps on the steem blockchain for free
 
 ## install
 ```
-git clone https://github.com/skzap/steemtimestamp.git
-cd steemtimestamp
+git clone https://github.com/skzap/steemtime.git
+cd steemtime
 npm install
 cd steem
 npm install
