@@ -1,4 +1,4 @@
-# steemtimestamp
+# steemtime
 api for making trusted timestamps on the steem blockchain for free
 
 ## install
