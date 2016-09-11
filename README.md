@@ -14,3 +14,13 @@ node main.js
 
 ## use the service for free
 this api is accessible for free on http://steemwhales.com/timestamping/
+
+## use programmatically
+###Stamping
+```
+curl --data "hash=<your hash here>" http://steemwhales.com:6060/time/request
+```
+###Verifying
+```
+curl --data "hash=<your hash here>" http://steemwhales.com:6060/time/verify
+```
