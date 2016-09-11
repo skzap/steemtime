@@ -51,7 +51,6 @@ loadTxs(2000, 2000, true, function() {
       steem.api.getBlockHeader(transfer.block_num, function(e,block) {
         if (e) throw e;
         var stamp = {
-          method: 'STEEM',
           hash: memo,
           timestamp: block.timestamp,
           detail: transfer
@@ -71,16 +70,29 @@ loadTxs(2000, 2000, true, function() {
     }
 
     var tx = find_by_memo(req.body.hash);
-    if (tx) {
-      var result = tx[1];
-      delete(result.id);
-      delete(result.trx_id);
-      delete(result.trx_in_block);
-      delete(result.op_in_trx);
-      delete(result.virtual_op);
-      res.end(JSON.stringify({result: true, tx: result}))
+    if (!tx) {
+      res.end(JSON.stringify({result: false, detail: 'hash not found'}))
+      return;
     }
-    else res.end(JSON.stringify({result: false, detail: 'this hash was not found'}))
+    steem.api.getBlock(tx[1].block, function(e,block) {
+      if (!block) {
+        res.end(JSON.stringify({result: false, detail: 'block not found'}))
+        return;
+      }
+      for (var i = 0; i < block.transactions.length; i++) {
+        if (block.transactions[i].operations[0][0] != 'transfer') continue;
+        if (!block.transactions[i].operations[0][1].memo) continue;
+        if (block.transactions[i].operations[0][1].memo == req.body.hash) {
+          res.end(JSON.stringify({
+            result: true,
+            timestamp: block.timestamp
+          }));
+          return;
+        }
+      }
+      res.end(JSON.stringify({result: false, detail: 'hash not found in this block'}))
+      return;
+    })
   })
 
   app.listen(6060, function() {
