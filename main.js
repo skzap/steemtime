@@ -17,8 +17,8 @@ var app = express()
 var bodyParser = require('body-parser')
 
 console.log('Starting getting all transactions...')
-loadTxs(max, function(total) {
-  console.log('All '+total+' tx loaded')
+loadTxs(2000, 2000, true, function() {
+  console.log('All '+allTx.length+' tx loaded')
 
   app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
     extended: true
@@ -58,46 +58,28 @@ loadTxs(max, function(total) {
         }
         console.log(stamp)
         res.end(JSON.stringify(stamp))
+        loadTxs(max, 10, false, function(){console.log('Now '+allTx.length+' tx')})
       })
     })
   })
 
   // hash: hash to search for
-  // block: steem block number to look up
-  app.post('/time/check', function (req, res) {
-    if (!req.body.hash) {
-      res.end('Error: no hash!')
-      return
-    }
-    if (!req.body.block) {
-      res.end('Error: no block number!')
-      return
-    }
-
-    steem.api.getBlock(req.body.block, function(e,block) {
-      if (!block)
-        res.end(JSON.stringify({result: false, detail: 'block not found'}))
-      for (var i = 0; i < block.transactions.length; i++) {
-        if (block.transactions[i].operations[0][0] != 'transfer') continue;
-        if (!block.transactions[i].operations[0][1].memo) continue;
-        if (block.transactions[i].operations[0][1].memo == req.body.hash)
-          res.end(JSON.stringify({
-            result: true,
-            timestamp: block.timestamp
-          }))
-      }
-      res.end(JSON.stringify({result: false, detail: 'hash not found in this block'}))
-    })
-  })
-
-  app.post('/time/search', function (req, res) {
+  app.post('/time/verify', function (req, res) {
     if (!req.body.hash) {
       res.end('Error: no hash!')
       return
     }
 
     var tx = find_by_memo(req.body.hash);
-    if (tx) res.end(JSON.stringify({result: true, tx: tx}))
+    if (tx) {
+      var result = tx[1];
+      delete(result.id);
+      delete(result.trx_id);
+      delete(result.trx_in_block);
+      delete(result.op_in_trx);
+      delete(result.virtual_op);
+      res.end(JSON.stringify({result: true, tx: result}))
+    }
     else res.end(JSON.stringify({result: false, detail: 'this hash was not found'}))
   })
 
@@ -106,19 +88,16 @@ loadTxs(max, function(total) {
   })
 });
 
-function loadTxs(maximum, cb) {
-  //console.log(maximum)
-  var number = 2000;
-  if (maximum < 2000)  number = maximum;
-  console.log('get_acc_history', accounts[1], maximum, number)
-  steem.api.getAccountHistory(accounts[1], maximum, number, function(e,r) {
+function loadTxs(maximum, limit, recursive, cb) {
+  console.log('get_acc_history', accounts[1], maximum, limit)
+  steem.api.getAccountHistory(accounts[1], maximum, limit, function(e,r) {
     for (var i = 0; i < r.length; i++) {
-      if (r[i][1].op[0] == 'transfer' && !exists(r[i][0]))
+      if (r[i][1].op[0] == 'transfer' && !exists(r[i][0])) {
         allTx.push(r[i]);
-      if (r[i][0] < max) max = r[i][0];
+      }
     }
-    if (r.length > 2000) loadTxs(max, cb);
-    else cb(allTx.length);
+    if (r[r.length-1][0] == maximum && recursive) loadTxs(maximum+2000, 2000, true, cb);
+    else cb();
   })
 }
 
