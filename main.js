@@ -85,6 +85,7 @@ loadTxs(2000, 2000, true, function() {
         if (block.transactions[i].operations[0][1].memo == req.body.hash) {
           res.end(JSON.stringify({
             result: true,
+            block: tx[1].block,
             timestamp: block.timestamp
           }));
           return;
